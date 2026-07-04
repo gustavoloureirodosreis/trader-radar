@@ -1,0 +1,7 @@
+.env
+__pycache__/
+*.pyc
+site/
+snapshots/run.log
+snapshots/latest
+.DS_Store

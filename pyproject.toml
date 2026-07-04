@@ -1,0 +1,9 @@
+[project]
+name = "trader-radar"
+version = "0.1.0"
+description = "Daily snapshot of top Hyperliquid + Pacifica traders and their positioning"
+requires-python = ">=3.10"
+dependencies = ["requests>=2.31"]
+
+[project.scripts]
+trader-radar = "trader_radar.__main__:main"
