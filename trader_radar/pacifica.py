@@ -26,8 +26,11 @@ class PacificaSource:
             raise RuntimeError(f"pacifica error on {path}: {result}")
         return result
 
-    def fetch_leaderboard(self) -> list[Trader]:
-        rows = self._get("/leaderboard")["data"]
+    def fetch_leaderboard_raw(self) -> list[dict]:
+        return self._get("/leaderboard")["data"]
+
+    @staticmethod
+    def parse_leaderboard(rows: list[dict]) -> list[Trader]:
         traders = []
         for row in rows:
             equity = float(row.get("equity_current") or 0)

@@ -34,7 +34,9 @@ def eligible(t: Trader, s: Settings) -> bool:
 
 
 def rank_traders(traders: list[Trader], s: Settings) -> list[Trader]:
-    """Filter to eligible traders, score them, return the top N of the venue."""
+    """Filter to eligible traders, score them, return the archive-depth top of
+    the venue (report cohort = ranks 1..top_n; the rest is stored for
+    retroactive rule changes)."""
     pool = [t for t in traders if eligible(t, s)]
     if not pool:
         return []
@@ -51,7 +53,7 @@ def rank_traders(traders: list[Trader], s: Settings) -> list[Trader]:
         t.score = sum(WEIGHTS[k] * parts[k] for k in WEIGHTS)
 
     pool.sort(key=lambda t: t.score, reverse=True)
-    top = pool[: s.top_n]
+    top = pool[: s.archive_top_n]
     for i, t in enumerate(top, start=1):
         t.rank = i
     return top

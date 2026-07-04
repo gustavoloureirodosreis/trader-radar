@@ -14,8 +14,11 @@ FILLS_SLEEP_S = 1.1
 STATE_SLEEP_S = 0.15
 
 
-def fetch_leaderboard() -> list[Trader]:
-    data = request_json("GET", LEADERBOARD_URL, timeout=120)
+def fetch_leaderboard_raw() -> dict:
+    return request_json("GET", LEADERBOARD_URL, timeout=120)
+
+
+def parse_leaderboard(data: dict) -> list[Trader]:
     traders = []
     for row in data["leaderboardRows"]:
         windows = {name: vals for name, vals in row["windowPerformances"]}

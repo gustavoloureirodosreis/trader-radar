@@ -118,6 +118,39 @@ Notes:
 - Optional: add a `PACIFICA_API_KEY` repo secret to raise Pacifica rate limits
   (`gh secret set PACIFICA_API_KEY`).
 
+## Data retention & changing the rules retroactively
+
+Each day archives more than the report shows, so most rule changes can be
+replayed against the past:
+
+- `traders.json` / `positions.json` — the top **250** per venue by score
+  (`ARCHIVE_TOP_N`), even though the report renders only the top 100.
+- `raw/*.json.gz` — the full raw leaderboards (accounts ≥ $5k equity; dust
+  dropped), ~2MB/day compressed.
+- `meta.json` — the exact settings and score weights each day ran with.
+
+After changing rules, rewrite history with:
+
+```bash
+python3 -m trader_radar --rerender all   # or a single YYYY-MM-DD
+git add snapshots && git commit -m "rerender with new rules" && git push
+```
+
+The push triggers `deploy-site.yml`, which republishes the Pages site.
+
+What's retroactive vs forward-only:
+
+- **Fully retroactive**: report layout, verdict/early/late thresholds, fresh
+  and elite definitions, score re-weighting, shrinking the cohort, any
+  leaderboard-only analysis (the raw boards are archived whole).
+- **Retroactive up to rank 250/venue**: widening the report cohort, loosening
+  eligibility — as long as the newly included traders were already in the
+  archived top 250 by the old score.
+- **Forward-only**: anything needing positions of traders outside the archived
+  set, per-position data we don't collect yet (e.g. funding paid), or intraday
+  granularity. Neither venue exposes historical positions, so what wasn't
+  captured on the day is gone.
+
 ## Caveats
 
 - Leaderboards are venue snapshots and can lag live account state slightly.

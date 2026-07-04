@@ -25,6 +25,13 @@ def load_dotenv(path: Path | None = None) -> None:
 @dataclass
 class Settings:
     top_n: int = 100
+    # Positions are fetched and archived for a wider cohort than the report
+    # shows, so selection rules can be re-run against the past (up to this
+    # depth) without re-fetching data that no longer exists.
+    archive_top_n: int = 250
+    # Raw leaderboard archive floor: rows below this equity are dust accounts
+    # no future rule change would select; dropping them keeps the archive ~2MB/day.
+    raw_min_equity_usd: float = 5_000.0
     # Eligibility floors ("skin in the game"). Pacifica is a smaller venue,
     # so the floor is lower there.
     hl_min_equity_usd: float = 50_000.0
@@ -48,6 +55,9 @@ class Settings:
         load_dotenv()
         s = cls()
         s.top_n = int(os.environ.get("TOP_N", s.top_n))
+        s.archive_top_n = max(
+            int(os.environ.get("ARCHIVE_TOP_N", s.archive_top_n)), s.top_n
+        )
         s.hl_min_equity_usd = float(os.environ.get("HL_MIN_EQUITY_USD", s.hl_min_equity_usd))
         s.pcf_min_equity_usd = float(os.environ.get("PCF_MIN_EQUITY_USD", s.pcf_min_equity_usd))
         s.pacifica_api_key = os.environ.get("PACIFICA_API_KEY", "")

@@ -32,7 +32,7 @@ jobs:
           git config user.name "trader-radar bot"
           git config user.email "actions@users.noreply.github.com"
           git add snapshots
-          git commit -m "snapshot $(date -u +%F)" || echo "nothing to commit"
+          git commit -m "snapshot $(date -u +%F) [skip ci]" || echo "nothing to commit"
           git pull --rebase origin main
           git push
       - name: Build site

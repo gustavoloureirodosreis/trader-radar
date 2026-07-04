@@ -1,11 +1,14 @@
 from __future__ import annotations
 
+import dataclasses
 import html
 import json
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from pathlib import Path
 
+from .config import Settings
 from .models import Position, Trader
+from .scoring import WEIGHTS
 
 # Display cuts. The full data always lands in the JSON files; the report only
 # shows what's worth reading.
@@ -21,27 +24,56 @@ MAX_CHANGES = 8
 
 def write_snapshot(
     out_dir: Path,
+    day: str,
+    settings: Settings,
     traders: list[Trader],
     positions: list[Position],
     assets: list[dict],
     fresh: list[dict],
     splits: list[dict],
     elite_notes: list[str],
+    *,
+    write_data: bool = True,
 ) -> Path:
-    day_dir = out_dir / datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    """Write one day's snapshot. `traders`/`positions` may be the archive-depth
+    superset; the rendered report only shows ranks 1..settings.top_n. With
+    write_data=False (rerenders) only report.html/assets.json are rewritten,
+    leaving archived source data untouched."""
+    day_dir = out_dir / day
     day_dir.mkdir(parents=True, exist_ok=True)
 
-    (day_dir / "traders.json").write_text(
-        json.dumps([t.to_dict() for t in traders], indent=1)
-    )
-    (day_dir / "positions.json").write_text(
-        json.dumps([p.to_dict() for p in positions], indent=1)
-    )
+    if write_data:
+        (day_dir / "traders.json").write_text(
+            json.dumps([t.to_dict() for t in traders], indent=1)
+        )
+        (day_dir / "positions.json").write_text(
+            json.dumps([p.to_dict() for p in positions], indent=1)
+        )
+        (day_dir / "meta.json").write_text(
+            json.dumps(
+                {
+                    "generated_at": datetime.now(timezone.utc).isoformat(),
+                    "settings": {
+                        k: v for k, v in dataclasses.asdict(settings).items()
+                        if not isinstance(v, Path) and "api_key" not in k
+                    },
+                    "score_weights": WEIGHTS,
+                },
+                indent=1,
+            )
+        )
     (day_dir / "assets.json").write_text(json.dumps(assets, indent=1))
+
+    cutoff = settings.top_n
+    report_traders = [t for t in traders if t.rank <= cutoff]
+    report_positions = [p for p in positions if p.trader_rank <= cutoff]
 
     changes = _diff_vs_previous(out_dir, day_dir, assets)
     (day_dir / "report.html").write_text(
-        _render_html(traders, positions, assets, fresh, splits, elite_notes, changes)
+        _render_html(
+            day, report_traders, report_positions, assets, fresh, splits,
+            elite_notes, changes,
+        )
     )
 
     latest = out_dir / "latest"
@@ -175,6 +207,7 @@ footer { margin-top: 44px; color: var(--muted); font-size: 12.5px; border-top: 1
 
 
 def _render_html(
+    day: str,
     traders: list[Trader],
     positions: list[Position],
     assets: list[dict],
@@ -183,7 +216,8 @@ def _render_html(
     elite_notes: list[str],
     changes: dict,
 ) -> str:
-    now = datetime.now(timezone.utc)
+    day_date = date.fromisoformat(day)
+    generated = datetime.now(timezone.utc)
     n_hl = sum(1 for t in traders if t.venue == "hyperliquid")
     n_pcf = len(traders) - n_hl
     total_notional = sum(p.notional_usd for p in positions)
@@ -198,12 +232,13 @@ def _render_html(
     parts = [
         "<!doctype html><html lang='en'><head><meta charset='utf-8'>",
         "<meta name='viewport' content='width=device-width, initial-scale=1'>",
-        f"<title>Trader Radar — {now.strftime('%Y-%m-%d')}</title>",
+        f"<title>Trader Radar — {day}</title>",
         f"<style>{CSS}</style></head>",
-        f"<body data-date='{now.strftime('%Y-%m-%d')}'><div class='wrap'>",
+        f"<body data-date='{day}'><div class='wrap'>",
         "<header><div><h1>Trader Radar</h1>",
-        f"<div class='date'>{now.strftime('%A, %B %-d %Y · %H:%M UTC')} · "
-        f"{n_hl} Hyperliquid + {n_pcf} Pacifica traders</div></div>",
+        f"<div class='date'>{day_date.strftime('%A, %B %-d %Y')} · "
+        f"{n_hl} Hyperliquid + {n_pcf} Pacifica traders · "
+        f"generated {generated.strftime('%H:%M UTC')}</div></div>",
         "<nav class='daynav' id='daynav' hidden>"
         "<a id='navprev' title='previous day'>&#8249;</a>"
         "<a id='navnext' title='next day'>&#8250;</a>"
