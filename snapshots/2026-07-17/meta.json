@@ -1,0 +1,24 @@
+{
+ "generated_at": "2026-07-17T13:51:31.911634+00:00",
+ "settings": {
+  "top_n": 100,
+  "archive_top_n": 250,
+  "raw_min_equity_usd": 5000.0,
+  "hl_min_equity_usd": 50000.0,
+  "pcf_min_equity_usd": 10000.0,
+  "mm_max_turnover": 300.0,
+  "mm_max_abs_roi": 0.02,
+  "early_max_upnl_pct": 15.0,
+  "early_min_recent_entries": 3,
+  "late_min_upnl_pct": 50.0,
+  "recent_entry_days": 7.0
+ },
+ "score_weights": {
+  "pnl_30d": 0.3,
+  "roi_30d": 0.2,
+  "pnl_7d": 0.15,
+  "pnl_all_time": 0.15,
+  "equity": 0.1,
+  "consistency": 0.1
+ }
+}
